@@ -3,6 +3,7 @@ export {
     AGENT_NAME_SOURCE,
     AVATAR_MAX_BYTES,
     avatarType,
+    CLOSE_NOT_PAIRED,
     GATEWAY_PORT,
     isAgentDescription,
     isAgentName,

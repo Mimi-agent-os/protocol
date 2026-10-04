@@ -6,6 +6,9 @@ export const GATEWAY_PORT = 46464;
 /** Bump only when a frame or payload change is incompatible — additive optional fields do not. */
 export const PROTOCOL_VERSION = 1;
 
+/** The /channel close code for a handshake that did not authenticate (another gateway's key, an unknown or revoked client key). */
+export const CLOSE_NOT_PAIRED = 4401;
+
 /** A pairing device name is at most this many code points. */
 export const MAX_DEVICE_NAME_CHARS = 64;
 
