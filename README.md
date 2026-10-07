@@ -37,6 +37,8 @@ Everything comes from one entry point, `@mimi-os/protocol`.
   `ToolCall`, `StreamEvent`, `Usage`.
 - Messages: `parseEnvelope`, `REPLY_OF`, `RequestOf<K>`, `ReplyOf<K>`, a `*Payload` type per message.
 - Event log and identity: `chainHash`, `GENESIS_HASH`, `foldEvents`, `sanitizeHistory`, `fingerprint`.
+- Pasted text: `buildPasted`, `parsePasted`, `lineCount`, `Paste`, the `<pasted_text>` blocks a user message from
+  the app opens with.
 - Channel: `ClientSession`, `ServerSession`, `PairingInitiator`, `PairingResponder`, `newInvite`,
   `makeInviteUri`, `parseInviteUri`, `FLAG_END`, `AppStreamPort`.
 

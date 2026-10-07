@@ -115,6 +115,8 @@ export type {
 
 export { foldEvents, INTERRUPTED_TOOL_RESULT, isImageDataUri, projectMessage, sanitizeHistory, truncateCut } from "./wire/projection.ts";
 export type { FoldedEntry } from "./wire/projection.ts";
+export { buildPasted, lineCount, parsePasted } from "./wire/pasted.ts";
+export type { Paste } from "./wire/pasted.ts";
 
 export { gatewayId, INVITE_ID_SOURCE, makeInviteUri, newInvite, parseInviteUri } from "./channel/pairing-invite.ts";
 export type { Invite } from "./channel/pairing-invite.ts";
