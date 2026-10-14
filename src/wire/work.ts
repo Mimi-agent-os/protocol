@@ -34,7 +34,7 @@ export interface ChatPayload {
     params?: Record<string, unknown>;
     scope?: string;
     session?: SessionId;
-    /** Prepend the agent's own system prompt (persona, pack parts, date) the way a turn does. */
+    /** Prepend the agent's own system prompt (persona, pack parts) the way a turn does. It holds no clock: the messages say when it is. */
     withPrompt?: boolean;
 }
 
