@@ -5,9 +5,15 @@ export {
     avatarType,
     CLOSE_NOT_PAIRED,
     GATEWAY_PORT,
+    IMAGE_TOKENS,
     isAgentDescription,
     isAgentName,
+    MAX_AGENT_MESSAGE_BYTES,
+    MAX_EVENT_BYTES,
+    MAX_IMAGE_BYTES,
+    MAX_IMAGES,
     PROTOCOL_VERSION,
+    TURN_IMAGE_SHARE,
 } from "./constants.ts";
 
 export type {
@@ -66,6 +72,7 @@ export type {
     EventBody,
     EventsAfterOkPayload,
     EventsAfterPayload,
+    ImageNotes,
     SessionCreateOkPayload,
     SessionCreatePayload,
     SessionDeleteOkPayload,
@@ -113,7 +120,7 @@ export type {
     QuestionResolvedEvent,
 } from "./wire/questions.ts";
 
-export { foldEvents, INTERRUPTED_TOOL_RESULT, isImageDataUri, projectMessage, sanitizeHistory, truncateCut } from "./wire/projection.ts";
+export { foldEvents, imageNotesOf, INTERRUPTED_TOOL_RESULT, isImageDataUri, projectMessage, sanitizeHistory, truncateCut } from "./wire/projection.ts";
 export type { FoldedEntry } from "./wire/projection.ts";
 export { buildPasted, lineCount, parsePasted } from "./wire/pasted.ts";
 export type { Paste } from "./wire/pasted.ts";

@@ -1,4 +1,4 @@
-// The stored log → the Message[] a prompt is built from: compaction replaces, truncate hides, parity repaired.
+// The stored log → the Message[] a prompt is built from: compaction replaces and describes images, truncate hides, parity repaired.
 
 import type { Message, ToolCall } from "../types.ts";
 import type { StoredEvent } from "./session.ts";
@@ -104,6 +104,24 @@ const rangeContains = (ranges: readonly Range[], seq: number): boolean => {
     return false;
 };
 
+/** The words each described message's images read as, by message seq: a later compaction event wins. */
+export function imageNotesOf(events: readonly StoredEvent[]): Map<number, string[]> {
+    const out = new Map<number, string[]>();
+    for (const ev of events) {
+        if (ev.type !== "compaction") continue;
+        const images = (ev.payload as { images?: unknown } | null | undefined)?.images;
+        if (!Array.isArray(images)) continue;
+        for (const raw of images) {
+            if (raw === null || typeof raw !== "object" || Array.isArray(raw)) continue;
+            const { seq, notes } = raw as { seq?: unknown; notes?: unknown };
+            if (typeof seq !== "number" || !Number.isSafeInteger(seq)) continue;
+            if (!Array.isArray(notes) || !notes.length || !notes.every((n) => typeof n === "string" && n !== "")) continue;
+            out.set(seq, notes as string[]);
+        }
+    }
+    return out;
+}
+
 /** A well-formed truncate event hides seqs from `from` up to, not including, its own seq `at`. */
 export function truncateCut(ev: StoredEvent): { from: number; at: number } | null {
     if (ev.type !== "truncate") return null;
@@ -163,12 +181,21 @@ export function foldEvents(events: readonly StoredEvent[]): FoldedEntry[] {
 
     const ranges = mergedRanges(hidden);
     const anchors = summaries.sort((a, b) => a.seq - b.seq);
+    const described = imageNotesOf(events);
     const out: FoldedEntry[] = [];
     let next = 0;
     for (const ev of events) {
         while (next < anchors.length && anchors[next]!.seq <= ev.seq) out.push(anchors[next++]!);
         const m = ev.type === "message" && !rangeContains(ranges, ev.seq) ? projectMessage(ev.payload) : null;
-        if (m) out.push({ seq: ev.seq, span: ev.seq, message: m });
+        if (!m) continue;
+        const notes = described.get(ev.seq);
+        if (notes) {
+            // whether or not the payload still holds the images: the gateway's cache strips them
+            delete m.images;
+            const lines = notes.map((n) => `[earlier image: ${n}]`).join("\n");
+            m.content = m.content ? `${m.content}\n${lines}` : lines;
+        }
+        out.push({ seq: ev.seq, span: ev.seq, message: m });
     }
     out.push(...anchors.slice(next));
     return out;

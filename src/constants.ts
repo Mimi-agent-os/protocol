@@ -26,6 +26,24 @@ export const AGENT_DESCRIPTION_MAX = 300;
 export const isAgentDescription = (text: string): boolean =>
     text !== "" && text.length <= AGENT_DESCRIPTION_MAX && !/[\r\n\u2028\u2029]/.test(text);
 
+/** One stream-0 message on an agent session, either direction: one image message's append fits it. */
+export const MAX_AGENT_MESSAGE_BYTES = 16 * 1024 * 1024;
+
+/** One stored event's payload JSON in UTF-8 bytes: with the events_after envelope around it, one agent message. */
+export const MAX_EVENT_BYTES = MAX_AGENT_MESSAGE_BYTES - 4_096;
+
+/** Images one user message may carry. */
+export const MAX_IMAGES = 32;
+
+/** One image data-URI in chars, which are its bytes (ASCII): about a 360 KB JPEG. */
+export const MAX_IMAGE_BYTES = 480_000;
+
+/** What one image is reckoned to cost in a model's window (a 1024 px edge is 1.0-1.35k tokens on Qwen-VL class models). */
+export const IMAGE_TOKENS = 1_500;
+
+/** The share of a model's window one message's images may fill. */
+export const TURN_IMAGE_SHARE = 0.5;
+
 /** An agent avatar's raw size cap; describe carries it base64, counted against the 512 KiB an agent may send on connect. */
 export const AVATAR_MAX_BYTES = 64 * 1024;
 

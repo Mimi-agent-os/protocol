@@ -1,7 +1,19 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { AGENT_DESCRIPTION_MAX, AGENT_NAME_SOURCE, avatarType, isAgentDescription, isAgentName } from "../src/index.ts";
+import {
+    AGENT_DESCRIPTION_MAX,
+    AGENT_NAME_SOURCE,
+    avatarType,
+    IMAGE_TOKENS,
+    isAgentDescription,
+    isAgentName,
+    MAX_AGENT_MESSAGE_BYTES,
+    MAX_EVENT_BYTES,
+    MAX_IMAGE_BYTES,
+    MAX_IMAGES,
+    TURN_IMAGE_SHARE,
+} from "../src/index.ts";
 
 test("an agent name is a bounded lowercase identifier — it enrolls as a pairing device name", () => {
     assert.ok(isAgentName("wren"));
@@ -40,4 +52,16 @@ test("an avatar's type comes from its magic bytes, and only PNG, JPEG and WebP h
     assert.equal(avatarType(bytes("GIF89a")), undefined);
     assert.equal(avatarType(bytes([0x89], "PNG")), undefined, "a truncated signature is not a PNG");
     assert.equal(avatarType(new Uint8Array()), undefined);
+});
+
+test("the image limits nest: a full image message is one stored event, and one event is one agent message", () => {
+    assert.equal(MAX_AGENT_MESSAGE_BYTES, 16_777_216);
+    assert.equal(MAX_EVENT_BYTES, 16_773_120);
+    assert.equal(MAX_IMAGES, 32);
+    assert.equal(MAX_IMAGE_BYTES, 480_000);
+    // 32 images and a megabyte of text, with the JSON around them
+    assert.ok(MAX_IMAGES * MAX_IMAGE_BYTES + 1_000_000 + 64 * 1024 < MAX_EVENT_BYTES);
+    // a 128k window takes a full message under its share; a 32k one takes 10 images
+    assert.equal(Math.floor((TURN_IMAGE_SHARE * 128_000) / IMAGE_TOKENS), 42);
+    assert.equal(Math.floor((TURN_IMAGE_SHARE * 32_000) / IMAGE_TOKENS), 10);
 });

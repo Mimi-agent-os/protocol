@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import type { Message } from "../types.ts";
-import { INTERRUPTED_TOOL_RESULT, foldEvents, projectMessage, sanitizeHistory } from "./projection.ts";
+import { INTERRUPTED_TOOL_RESULT, foldEvents, imageNotesOf, projectMessage, sanitizeHistory } from "./projection.ts";
 import type { EventBody, StoredEvent } from "./session.ts";
 
 const log = (...bodies: EventBody[]): StoredEvent[] =>
@@ -237,6 +237,81 @@ test("many disjoint compactions preserve every replacement", () => {
             `replacement ${anchor}`,
         );
     }
+});
+
+const PNG = "data:image/png;base64,iVBORw0KGgo=";
+const pictured = (content: string, count: number): EventBody => ({
+    type: "message",
+    payload: { role: "user", content, images: Array.from({ length: count }, () => PNG) },
+});
+
+test("image notes are read from every compaction event, validated, a later event winning per seq", () => {
+    const events = log(
+        pictured("one", 2),
+        pictured("two", 1),
+        {
+            type: "compaction",
+            payload: {
+                images: [
+                    { seq: 1, notes: ["a receipt", "a cat"] },
+                    { seq: 2, notes: ["first try"] },
+                    { seq: 1.5, notes: ["fractional"] },
+                    { seq: 3, notes: [] },
+                    { seq: 3, notes: ["ok", ""] },
+                    { seq: 3, notes: ["ok", 7] },
+                    { seq: "2", notes: ["string seq"] },
+                    null,
+                    [2, ["array"]],
+                ],
+            },
+        } as unknown as EventBody,
+        { type: "compaction", payload: { images: "nope" } } as unknown as EventBody,
+        { type: "compaction", payload: { summary: "s", covers: [9, 9], images: [{ seq: 2, notes: ["second try"] }] } },
+        { type: "message", payload: { role: "user", content: "not a compaction", images: [{ seq: 1, notes: ["x"] }] } } as unknown as EventBody,
+    );
+    assert.deepEqual([...imageNotesOf(events)], [
+        [1, ["a receipt", "a cat"]],
+        [2, ["second try"]],
+    ]);
+    assert.equal(imageNotesOf([]).size, 0);
+});
+
+test("an images-only compaction cuts nothing and anchors no summary: a noted message reads its notes instead of its pixels", () => {
+    const events = log(
+        pictured("what is this?", 2),
+        { type: "message", payload: { role: "assistant", content: "two photos" } },
+        pictured("", 1),
+        pictured("still pixels", 1),
+        { type: "compaction", payload: { images: [{ seq: 1, notes: ["a receipt: 2 croissants, 6.40 EUR", "a cat"] }, { seq: 3, notes: ["a bridge at night"] }] } },
+    );
+    const folded = foldEvents(events);
+    assert.deepEqual(folded.map((e) => [e.seq, e.span]), [[1, 1], [2, 2], [3, 3], [4, 4]]);
+    assert.deepEqual(folded.map((e) => e.message), [
+        { role: "user", content: "what is this?\n[earlier image: a receipt: 2 croissants, 6.40 EUR]\n[earlier image: a cat]" },
+        { role: "assistant", content: "two photos" },
+        { role: "user", content: "[earlier image: a bridge at night]" },
+        { role: "user", content: "still pixels", images: [PNG] },
+    ]);
+});
+
+test("notes apply to a message whose images were already stripped, and alongside a summary only the kept part reads them", () => {
+    const stripped = log({ type: "message", payload: { role: "user", content: "look" } }, {
+        type: "compaction",
+        payload: { images: [{ seq: 1, notes: ["a cat"] }] },
+    });
+    assert.deepEqual(said(foldEvents(stripped)), ["user:look\n[earlier image: a cat]"]);
+
+    const both = log(
+        pictured("old", 1),
+        { type: "message", payload: { role: "assistant", content: "seen" } },
+        pictured("kept", 1),
+        {
+            type: "compaction",
+            payload: { summary: "the owner sent a receipt", covers: [1, 2], images: [{ seq: 1, notes: ["a receipt"] }, { seq: 3, notes: ["a cat"] }] },
+        },
+    );
+    assert.deepEqual(said(foldEvents(both)), ["assistant:the owner sent a receipt", "user:kept\n[earlier image: a cat]"]);
+    assert.equal(foldEvents(both).some((e) => e.message.images), false);
 });
 
 test("sanitizeHistory drops orphan and duplicate tool results and backfills unanswered calls", () => {

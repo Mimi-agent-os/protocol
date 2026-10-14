@@ -6,9 +6,17 @@ import type { WireNotice } from "./envelope/types.ts";
 // numeric on purpose: session ids are structural (routes, cache keys), not display data
 export type SessionId = number;
 
+/** Words that stand for a message's images in what the model sees: notes[i] for images[i] of message `seq`. */
+export interface ImageNotes {
+    seq: number;
+    notes: string[];
+}
+
+/** `summary` and `covers` come together or not at all: a pass that only described images writes `images` alone. */
 export interface CompactionPayload {
-    summary: string;
-    covers: [number, number];
+    summary?: string;
+    covers?: [number, number];
+    images?: ImageNotes[];
 }
 
 export interface TruncatePayload {
